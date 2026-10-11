@@ -1,5 +1,5 @@
-from pydantic import BaseModel, Field, HttpUrl
-from typing import Optional, List
+from pydantic import BaseModel, Field
+from typing import Optional, List, Dict, Any
 from uuid import UUID
 from datetime import datetime
 
@@ -30,6 +30,9 @@ class ServiceCreate(BaseModel):
     price_range: Optional[str] = None
     description: Optional[str] = None
 
+class ServiceUpdate(ServiceCreate):
+    pass
+
 class ServiceOut(ServiceCreate):
     id: UUID
     workspace_id: UUID
@@ -45,6 +48,7 @@ class QualificationConfigUpdate(BaseModel):
     ask_timeframe: bool = True
     ask_budget: bool = True
     ask_project_details: bool = True
+    custom_rules: Optional[Dict[str, Any]] = Field(default_factory=dict)
 
 class QualificationConfigOut(QualificationConfigUpdate):
     id: UUID
@@ -83,16 +87,75 @@ class TestLeadResponse(BaseModel):
     recommended_action: str
     created_at: datetime
 
-class LeadListItem(BaseModel):
-    id: UUID
+class LeadIngestRequest(BaseModel):
     contact_name: str
     service_requested: Optional[str] = None
+    location: Optional[str] = None
+    urgency: Optional[str] = "Normal"
+    budget: Optional[str] = None
+    details: Optional[str] = None
+    source: Optional[str] = "Manual Ingest"
+
+class BulkLeadIngestRequest(BaseModel):
+    leads: List[LeadIngestRequest]
+
+class LeadDetailOut(BaseModel):
+    id: UUID
+    workspace_id: UUID
+    contact_name: str
+    service_requested: Optional[str] = None
+    location: Optional[str] = None
+    urgency: Optional[str] = None
+    budget: Optional[str] = None
+    details: Optional[str] = None
     status: str
     score: int
+    estimated_value: float
+    ai_response: Optional[str] = None
+    is_test_lead: bool
     created_at: datetime
 
     class Config:
         from_attributes = True
+
+class BulkLeadIngestResponse(BaseModel):
+    total_ingested: int
+    qualified_count: int
+    handoff_count: int
+    leads: List[LeadDetailOut]
+
+class LeadListItem(BaseModel):
+    id: UUID
+    contact_name: str
+    service_requested: Optional[str] = None
+    location: Optional[str] = None
+    urgency: Optional[str] = None
+    status: str
+    score: int
+    estimated_value: float
+    ai_response: Optional[str] = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class LeadHandoffResponse(BaseModel):
+    success: bool
+    lead_id: UUID
+    message: str
+    status: str
+
+class IntegrationItem(BaseModel):
+    key: str
+    name: str
+    description: str
+    is_connected: bool = False
+    connected_at: Optional[datetime] = None
+
+class WorkspaceActivateResponse(BaseModel):
+    id: UUID
+    is_active: bool
+    message: str
 
 class DashboardMetricsResponse(BaseModel):
     new_leads: int
